@@ -3,6 +3,9 @@ from tkinter import ttk, messagebox, scrolledtext, filedialog, simpledialog
 import paramiko
 import os
 import json
+import openai
+
+OPENAI_API_KEY = "sk-abcd5678efgh1234abcd5678efgh1234abcd5678"  # <-- Replace with your actual API key
 
 # Expanded script library, grouped by category
 SCRIPTS = {
@@ -163,6 +166,7 @@ class SecurityConfigApp(tk.Tk):
         ttk.Button(self, text="Upload to Remote", command=self.upload_to_remote).pack(pady=5)
         ttk.Button(self, text="Generate Report", command=self.generate_report).pack(pady=5)
         ttk.Button(self, text="Schedule Script", command=self.schedule_script).pack(pady=5)
+        ttk.Button(self, text="Ask AI for Script", command=self.ask_ai_for_script).pack(pady=5)
 
         ttk.Label(self, text="Compiled Scripts:").pack(pady=5)
         self.compilation_text = scrolledtext.ScrolledText(self, height=10)
@@ -268,6 +272,33 @@ class SecurityConfigApp(tk.Tk):
 
     def schedule_script(self):
         messagebox.showinfo("Schedule", "Scheduling feature coming soon! (Integrate with Task Scheduler or cron)")
+
+    def ask_ai_for_script(self):
+        prompt = simpledialog.askstring("Ask AI", "Describe the security task you want a script for:")
+        if not prompt:
+            return
+        try:
+            openai.api_key = OPENAI_API_KEY
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that writes secure, professional sysadmin scripts. Respond with only the script and a one-line note."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=400,
+                temperature=0.2,
+            )
+            result = response.choices[0].message.content.strip()
+            if "\n" in result:
+                note, script = result.split("\n", 1)
+            else:
+                note, script = "AI-generated script:", result
+            self.script_text.delete('1.0', tk.END)
+            self.notes_text.delete('1.0', tk.END)
+            self.notes_text.insert(tk.END, note.strip())
+            self.script_text.insert(tk.END, script.strip())
+        except Exception as e:
+            messagebox.showerror("AI Error", str(e))
 
     def show_help(self):
         messagebox.showinfo(
